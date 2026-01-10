@@ -1,0 +1,44 @@
+{
+  "name": "shah-marketplace-backend",
+  "version": "2.0.0",
+  "description": "Shah Marketplace Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed:categories": "node scripts/seedCategories.js",
+    "seed:admin": "node scripts/createAdmin.js",
+    "seed:all": "npm run seed:categories && npm run seed:admin",
+    "verify": "node scripts/verifySetup.js",
+    "check": "node startup-check.js",
+    "verify-complete": "node verify-complete.js",
+    "verify-exports": "node verify-exports.js",
+    "test-complete": "node test-complete-system.js",
+    "test": "node test-all.js"
+  },
+  "keywords": ["marketplace", "api", "nodejs", "express", "mongodb"],
+  "author": "Shah Marketplace",
+  "license": "PROPRIETARY",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "multer": "^1.4.5-lts.1",
+    "express-validator": "^7.0.1",
+    "express-rate-limit": "^6.10.0",
+    "helmet": "^7.0.0",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  }
+}
