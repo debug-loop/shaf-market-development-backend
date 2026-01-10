@@ -14,9 +14,8 @@ exports.signup = async (req, res) => {
     const { fullName, email, password, telegram, country, referralCode } = req.body;
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ success: false, message: 'Email already registered' });
-    
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("hehe", req.body)
     const user = await User.create({
       userId: generateUserId(), fullName, email, password: hashedPassword, telegram, country, emailVerified: true
     });
@@ -37,6 +36,33 @@ exports.signup = async (req, res) => {
   }
 };
 
+exports.signupBuyer = async (req, res) => {
+  try {
+    const { fullName, email, password, telegram, country, referralCode } = req.body;
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ success: false, message: 'Email already registered' });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await User.create({
+      userId: generateUserId(), fullName, email, password: hashedPassword, telegram, country, role: 'buyer', emailVerified: true
+    });
+    await Wallet.create({ userId: user._id });
+
+    if (referralCode) {
+      const referralController = require('./referralController');
+      await referralController.trackReferral(referralCode, user._id);
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+    res.status(201).json({
+      success: true, message: 'Buyer account created successfully',
+      data: { token, user: { id: user._id, userId: user.userId, fullName: user.fullName, email: user.email, role: user.role, referralCode: user.referralCode }}
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 exports.signupSeller = async (req, res) => {
   try {
     const { fullName, email, password, telegram, country, referralCode, sellerType, selectedCategories, dailySupplyQuantity, yearsOfExperience, workDescription, portfolioLinks } = req.body;
@@ -45,7 +71,7 @@ exports.signupSeller = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
-      userId: generateUserId(), fullName, email, password: hashedPassword, telegram, country, role: 'buyer', sellerStatus: 'pending',
+      userId: generateUserId(), fullName, email, password: hashedPassword, telegram, country, role: 'seller', sellerStatus: 'pending',
       sellerType, selectedCategories, dailySupplyQuantity, yearsOfExperience, workDescription, portfolioLinks: portfolioLinks || [], emailVerified: true
     });
     await Wallet.create({ userId: user._id });

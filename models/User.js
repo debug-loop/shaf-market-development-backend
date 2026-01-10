@@ -1,45 +1,32 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true },
+  userId: { type: String, unique: true },
   fullName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  telegram: { type: String },
-  phone: { type: String },
-  whatsapp: { type: String },
-  wechat: { type: String },
-  discord: { type: String },
-  twitter: { type: String },
-  country: { type: String },
-  
   role: { 
     type: String, 
     enum: ['buyer', 'seller', 'admin', 'super-admin'], 
     default: 'buyer' 
   },
-  
   accountStatus: { 
     type: String, 
-    enum: ['active', 'suspended', 'frozen'], 
+    enum: ['active', 'frozen', 'suspended'], 
     default: 'active' 
   },
   
-  emailVerified: { type: Boolean, default: false },
-  telegramVerified: { type: Boolean, default: false },
-  
-  referralCode: { 
-    type: String, 
-    unique: true,
-    sparse: true
-  },
-  
+  // Seller-specific fields (only for sellers)
   sellerStatus: { 
     type: String, 
-    enum: ['pending', 'approved', 'rejected'], 
-    default: null 
+    enum: ['pending', 'approved', 'rejected'],
+    required: function() { return this.role === 'seller'; }
   },
-  sellerType: { type: String, enum: ['Personal', 'Business'] },
+  sellerType: { 
+    type: String, 
+    enum: ['Personal', 'Business'],
+    required: function() { return this.role === 'seller'; }
+  },
   selectedCategories: [{ type: String }],
   dailySupplyQuantity: { type: Number },
   yearsOfExperience: { type: Number },
@@ -47,11 +34,22 @@ const userSchema = new mongoose.Schema({
   portfolioLinks: [{ type: String }],
   rejectionReason: { type: String },
   
-  memberSince: { type: Date, default: Date.now }
-}, { timestamps: true });
+  // Contact info
+  telegram: { type: String },
+  country: { type: String },
+  
+  // Referral system
+  referralCode: { type: String, unique: true, sparse: true },
+  referredBy: { type: String },
+  
+  lastLogin: { type: Date },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
 
-userSchema.index({ email: 1 });
+// Indexes for performance
 userSchema.index({ userId: 1 });
+userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ sellerStatus: 1 });
 userSchema.index({ referralCode: 1 });
@@ -60,6 +58,7 @@ userSchema.pre('save', function(next) {
   if (!this.referralCode && this.isNew) {
     this.referralCode = `REF${this.userId}${Math.random().toString(36).substr(2, 4).toUpperCase()}`;
   }
+  this.updatedAt = Date.now();
   next();
 });
 
