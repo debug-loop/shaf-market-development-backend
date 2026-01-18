@@ -242,6 +242,99 @@ exports.getAuditLogs = async (req, res) => {
   }
 };
 
+// Get product changes for edited products
+exports.getProductChanges = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate('sectionId', 'name slug')
+      .populate('categoryId', 'name slug');
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found',
+      });
+    }
+
+    if (!product.isEdited || !product.previousVersion) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product has no changes to review',
+      });
+    }
+
+    // Get product attributes
+    const currentAttributes = await ProductAttribute.findOne({ productId: product._id });
+    const previousAttributes = product.previousVersion.attributes || {};
+
+    // Compare and find changes
+    const changes = [];
+    const currentData = {
+      ...product.toObject(),
+      attributes: currentAttributes?.attributes || {},
+    };
+    const previousData = product.previousVersion;
+
+    // Fields to compare
+    const fieldsToCompare = [
+      'productName',
+      'description',
+      'price',
+      'quantity',
+      'deliveryType',
+      'replacementAvailable',
+      'replacementDuration',
+      'bulkPricing',
+    ];
+
+    fieldsToCompare.forEach((field) => {
+      const current = currentData[field];
+      const previous = previousData[field];
+
+      if (JSON.stringify(current) !== JSON.stringify(previous)) {
+        changes.push({
+          field,
+          old: previous,
+          new: current,
+        });
+      }
+    });
+
+    // Compare attributes
+    const attributeKeys = new Set([
+      ...Object.keys(currentData.attributes || {}),
+      ...Object.keys(previousAttributes || {}),
+    ]);
+
+    attributeKeys.forEach((key) => {
+      const current = currentData.attributes[key];
+      const previous = previousAttributes[key];
+
+      if (current !== previous) {
+        changes.push({
+          field: `attributes.${key}`,
+          old: previous,
+          new: current,
+        });
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        product: currentData,
+        previousVersion: previousData,
+        changes,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   login: exports.login,
   getDashboard: exports.getDashboard,
